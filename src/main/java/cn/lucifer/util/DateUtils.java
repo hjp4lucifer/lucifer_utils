@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-
 /**
  * 时间工具类
  * 
@@ -308,6 +307,24 @@ public class DateUtils {
 		c.add(Calendar.HOUR_OF_DAY, hour);
 		c.add(Calendar.MINUTE, min);
 		c.add(Calendar.SECOND, second);
+		return c.getTime();
+	}
+
+	/**
+	 * 设置当天的时间
+	 * 
+	 * @param date
+	 * @param hour
+	 * @param min
+	 * @param second
+	 * @return
+	 */
+	public static Date setTime(Date date, int hour, int min, int second) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		c.set(Calendar.HOUR_OF_DAY, hour);
+		c.set(Calendar.MINUTE, min);
+		c.set(Calendar.SECOND, second);
 		return c.getTime();
 	}
 

@@ -112,7 +112,7 @@ public class DateUtils {
 		calendar.set(Calendar.HOUR_OF_DAY, zero);
 		calendar.set(Calendar.MINUTE, zero);
 		calendar.set(Calendar.SECOND, zero);
-		calendar.set(Calendar.MILLISECOND, 0);
+		calendar.set(Calendar.MILLISECOND, zero);
 		return calendar.getTime();
 	}
 

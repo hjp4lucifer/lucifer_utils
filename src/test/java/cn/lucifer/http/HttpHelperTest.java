@@ -1,4 +1,4 @@
-package cn.lucifer.util.http;
+package cn.lucifer.http;
 
 import java.io.IOException;
 
@@ -17,7 +17,7 @@ public class HttpHelperTest {
 	}
 
 	@Test
-	public void testHttps() throws IOException, HttpException {
+	public void testHttps() throws IOException, HttpClientException{
 		String url = "https://test.pay.api.oxzj.com/test/test.do";
 		url = "https://ouj.yy.com/test/test.do";
 		byte[] rsp = HttpHelper.http(url, HttpMethod.GET, null, null);
@@ -25,7 +25,7 @@ public class HttpHelperTest {
 	}
 
 	@Test
-	public void testHttp() throws IOException, HttpException {
+	public void testHttp() throws IOException, HttpClientException {
 		String url = "http://www.ouj.com/";
 		byte[] rsp = HttpHelper.http(url, HttpMethod.GET, null, null);
 		System.out.println(new String(rsp));

@@ -1,4 +1,4 @@
-package cn.lucifer.util.http;
+package cn.lucifer.http;
 
 import static org.junit.Assert.*;
 

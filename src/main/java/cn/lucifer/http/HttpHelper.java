@@ -76,7 +76,7 @@ public class HttpHelper {
 		}
 	}
 
-	protected static int connect_timeout = 5000;
+	protected static int connect_timeout = 30000;
 
 	public static byte[] http(String url, HttpMethod method,
 			Map<String, String> httpHeads, InputStream input)

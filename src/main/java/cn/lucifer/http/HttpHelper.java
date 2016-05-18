@@ -17,7 +17,6 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 
-
 public class HttpHelper {
 
 	static {

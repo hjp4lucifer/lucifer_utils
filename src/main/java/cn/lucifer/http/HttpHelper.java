@@ -7,9 +7,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -35,42 +37,34 @@ public class HttpHelper {
 		});
 	}
 
-	private static void trustAllHttpsCertificates()
-			throws NoSuchAlgorithmException, KeyManagementException {
+	private static void trustAllHttpsCertificates() throws NoSuchAlgorithmException, KeyManagementException {
 		javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[1];
 		javax.net.ssl.TrustManager tm = new MiTM();
 		trustAllCerts[0] = tm;
-		javax.net.ssl.SSLContext sc = javax.net.ssl.SSLContext
-				.getInstance("SSL");
+		javax.net.ssl.SSLContext sc = javax.net.ssl.SSLContext.getInstance("SSL");
 		sc.init(null, trustAllCerts, null);
-		javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(sc
-				.getSocketFactory());
+		javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 	}
 
-	static class MiTM implements javax.net.ssl.TrustManager,
-			javax.net.ssl.X509TrustManager {
+	static class MiTM implements javax.net.ssl.TrustManager, javax.net.ssl.X509TrustManager {
 		public java.security.cert.X509Certificate[] getAcceptedIssuers() {
 			return null;
 		}
 
-		public boolean isServerTrusted(
-				java.security.cert.X509Certificate[] certs) {
+		public boolean isServerTrusted(java.security.cert.X509Certificate[] certs) {
 			return true;
 		}
 
-		public boolean isClientTrusted(
-				java.security.cert.X509Certificate[] certs) {
+		public boolean isClientTrusted(java.security.cert.X509Certificate[] certs) {
 			return true;
 		}
 
-		public void checkServerTrusted(
-				java.security.cert.X509Certificate[] certs, String authType)
+		public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType)
 				throws java.security.cert.CertificateException {
 			return;
 		}
 
-		public void checkClientTrusted(
-				java.security.cert.X509Certificate[] certs, String authType)
+		public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType)
 				throws java.security.cert.CertificateException {
 			return;
 		}
@@ -78,24 +72,19 @@ public class HttpHelper {
 
 	protected static int connect_timeout = 30000;
 
-	public static byte[] http(String url, HttpMethod method,
-			Map<String, String> httpHeads, InputStream input)
+	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input)
 			throws IOException, HttpClientException {
 		return http(url, method, httpHeads, input, connect_timeout);
 	}
 
-	public static byte[] http(String url, HttpMethod method,
-			Map<String, String> httpHeads, InputStream input, int connectTimeout)
-			throws IOException, HttpClientException {
+	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input,
+			int connectTimeout) throws IOException, HttpClientException {
 		return http(url, method, httpHeads, input, connectTimeout, null);
 	}
 
-	public static byte[] http(String url, HttpMethod method,
-			Map<String, String> httpHeads, InputStream input,
-			int connectTimeout, Map<String, List<String>> responseHeads)
-			throws IOException, HttpClientException {
-		HttpURLConnection conn = (HttpURLConnection) new URL(url)
-				.openConnection();
+	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input,
+			int connectTimeout, Map<String, List<String>> responseHeads) throws IOException, HttpClientException {
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 		if (method != HttpMethod.DELETE) {
 			conn.setDoInput(true);
 		}
@@ -106,10 +95,11 @@ public class HttpHelper {
 		conn.setRequestMethod(method.toString());
 
 		conn(conn, httpHeads, connectTimeout);
-		if (null != responseHeads) {
-			responseHeads.putAll(conn.getHeaderFields());
+		if (null == responseHeads) {
+			responseHeads = new HashMap<>();
 		}
-		
+		responseHeads.putAll(conn.getHeaderFields());
+
 		if (null != input) {
 			OutputStream output = conn.getOutputStream();
 			IOUtils.copy(input, output);
@@ -118,19 +108,24 @@ public class HttpHelper {
 		}
 		int httpStatus = conn.getResponseCode();
 		if (httpStatus != HttpStatus.SC_OK) {
-			String msg = String.format(
-					"【%s】get data from url=%s fail, http status=%d",
-					method.toString(), url, httpStatus);
+			String msg = String.format("【%s】get data from url=%s fail, http status=%d", method.toString(), url,
+					httpStatus);
 			throw new HttpClientException(httpStatus, msg);
 		}
 		if (method == HttpMethod.DELETE) {
 			return new byte[0];
 		}
+
+		List<String> rspEncoding = responseHeads.get("Content-Encoding");
+		for (String s : rspEncoding) {
+			if ("gzip".equals(s)) {
+				return getGizpResponse(conn);
+			}
+		}
 		return getResponse(conn);
 	}
 
-	protected static byte[] getResponse(HttpURLConnection conn)
-			throws IOException {
+	protected static byte[] getResponse(HttpURLConnection conn) throws IOException {
 		InputStream input = conn.getInputStream();
 		byte[] response = IOUtils.toByteArray(input);
 
@@ -139,8 +134,16 @@ public class HttpHelper {
 		return response;
 	}
 
-	protected static void conn(HttpURLConnection conn,
-			Map<String, String> httpHeads, int connectTimeout)
+	protected static byte[] getGizpResponse(HttpURLConnection conn) throws IOException {
+		InputStream input = new GZIPInputStream(conn.getInputStream());
+		byte[] response = IOUtils.toByteArray(input);
+
+		IOUtils.closeQuietly(input);
+		conn.disconnect();
+		return response;
+	}
+
+	protected static void conn(HttpURLConnection conn, Map<String, String> httpHeads, int connectTimeout)
 			throws IOException {
 		if (httpHeads != null) {
 			for (Entry<String, String> head : httpHeads.entrySet()) {

@@ -115,6 +115,19 @@ public class HttpHelper {
 		responseHeads.putAll(conn.getHeaderFields());
 
 		int httpStatus = conn.getResponseCode();
+		
+		// 支持重定向
+		if (httpStatus == HttpStatus.SC_MOVED_PERMANENTLY || httpStatus == HttpStatus.SC_MOVED_TEMPORARILY) {
+			String newUrl = process301(conn);
+			if (null == newUrl) {
+				conn.disconnect();
+				String msg = String.format("【%s】get data from url=%s fail, http status=%d", method.toString(), url,
+						httpStatus);
+				throw new HttpClientException(httpStatus, msg);
+			}
+			return http(newUrl, HttpMethod.GET, httpHeads, null, connectTimeout);
+		}
+		
 		if (httpStatus != HttpStatus.SC_OK) {
 			String msg = String.format("【%s】get data from url=%s fail, http status=%d", method.toString(), url,
 					httpStatus);
@@ -144,6 +157,20 @@ public class HttpHelper {
 			getResponse(conn, outputStream);
 			return null;
 		}
+	}
+	
+	protected static String process301(HttpURLConnection conn) {
+		Map<String, List<String>> responseHeads = new HashMap<>(conn.getHeaderFields());
+		List<String> locations = responseHeads.get("Location");
+		if (null != locations) {
+			for (String s : locations) {
+				if (s.startsWith("http")) {
+					return s;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	protected static byte[] getResponse(HttpURLConnection conn) throws IOException {

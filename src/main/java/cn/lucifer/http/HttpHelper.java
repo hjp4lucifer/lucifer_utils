@@ -22,6 +22,10 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 
+/**
+ * 
+ * @author lucifer
+ */
 public class HttpHelper {
 
 	static {
@@ -72,11 +76,20 @@ public class HttpHelper {
 		}
 	}
 
-	public final static int connect_timeout = 30000;
+	public final static int CONNECT_TIMEOUT = 30000;
+
+	public static byte[] httpGet(String url, int connectTimeout) throws IOException, HttpClientException {
+		return http(url, HttpMethod.GET, null, null, connectTimeout);
+	}
+
+	public static byte[] httpPost(String url, InputStream input, int connectTimeout)
+			throws IOException, HttpClientException {
+		return http(url, HttpMethod.POST, null, input, connectTimeout);
+	}
 
 	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input)
 			throws IOException, HttpClientException {
-		return http(url, method, httpHeads, input, connect_timeout);
+		return http(url, method, httpHeads, input, CONNECT_TIMEOUT);
 	}
 
 	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input,
@@ -115,7 +128,7 @@ public class HttpHelper {
 		responseHeads.putAll(conn.getHeaderFields());
 
 		int httpStatus = conn.getResponseCode();
-		
+
 		// 支持重定向
 		if (httpStatus == HttpStatus.SC_MOVED_PERMANENTLY || httpStatus == HttpStatus.SC_MOVED_TEMPORARILY) {
 			String newUrl = process301(conn);
@@ -127,7 +140,7 @@ public class HttpHelper {
 			}
 			return http(newUrl, HttpMethod.GET, httpHeads, null, connectTimeout);
 		}
-		
+
 		if (httpStatus != HttpStatus.SC_OK) {
 			String msg = String.format("【%s】get data from url=%s fail, http status=%d", method.toString(), url,
 					httpStatus);
@@ -158,7 +171,7 @@ public class HttpHelper {
 			return null;
 		}
 	}
-	
+
 	protected static String process301(HttpURLConnection conn) {
 		Map<String, List<String>> responseHeads = new HashMap<>(conn.getHeaderFields());
 		List<String> locations = responseHeads.get("Location");
@@ -223,8 +236,7 @@ public class HttpHelper {
 	}
 
 	/**
-	 * The default buffer size to use for
-	 * {@link #copyLarge(InputStream, OutputStream)} and
+	 * The default buffer size to use for {@link #copyLarge(InputStream, OutputStream)} and
 	 * {@link #copyLarge(Reader, Writer)}
 	 */
 	public static final int DEFAULT_BUFFER_SIZE = 1024 * 4;

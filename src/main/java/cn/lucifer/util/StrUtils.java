@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 
 
-public class StringUtils {
+public class StrUtils {
 	public static final String null_string = "";
 
 	private static final String SUFFIX_ELLIPSIS_POINTS = "...";

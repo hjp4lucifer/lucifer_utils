@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -20,6 +21,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.apache.http.HttpStatus;
 
 /**
@@ -27,6 +30,15 @@ import org.apache.http.HttpStatus;
  * @author lucifer
  */
 public class HttpHelper {
+
+	public final static int CONNECT_TIMEOUT = 30000;
+
+	/**
+	 * The default buffer size to use for {@link #copyLarge(InputStream, OutputStream)} and
+	 * {@link #copyLarge(Reader, Writer)}
+	 */
+	public static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
+	protected final static String DEFAULT_ENCODE = "UTF-8";
 
 	static {
 		try {
@@ -76,8 +88,6 @@ public class HttpHelper {
 		}
 	}
 
-	public final static int CONNECT_TIMEOUT = 30000;
-
 	public static byte[] httpGet(String url, int connectTimeout) throws IOException, HttpClientException {
 		return http(url, HttpMethod.GET, null, null, connectTimeout);
 	}
@@ -85,6 +95,45 @@ public class HttpHelper {
 	public static byte[] httpPost(String url, InputStream input, int connectTimeout)
 			throws IOException, HttpClientException {
 		return http(url, HttpMethod.POST, null, input, connectTimeout);
+	}
+
+	public static byte[] httpSimple(String url, List<NameValuePair> paramList, HttpMethod method, int connectTimeout)
+			throws IOException, HttpClientException {
+		url = StringUtils.trimToNull(url);
+		if (null == url) {
+			throw new HttpClientException("Miss url !");
+		}
+
+		InputStream input = null;
+		if (null != paramList && !paramList.isEmpty()) {
+			StrBuilder builder = new StrBuilder();
+			boolean start = true;
+			for (NameValuePair pair : paramList) {
+				if (null == pair || null == pair.getName()) {
+					continue;
+				}
+				if (start) {
+					start = false;
+				} else {
+					builder.append('&');
+				}
+				builder.append(pair.getName()).append('=');
+				if (null != pair.getValue()) {
+					builder.append(URLEncoder.encode(pair.getValue().toString(), DEFAULT_ENCODE));
+				}
+			}
+			String paramsStr = builder.toString();
+
+			if (method == HttpMethod.POST) {
+				input = IOUtils.toInputStream(paramsStr);
+			} else {
+				// process url
+				builder.clear();
+				url = builder.append(url).append('?').append(paramsStr).toString();
+			}
+		}
+
+		return http(url, method, null, input, connectTimeout);
 	}
 
 	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input)
@@ -147,6 +196,7 @@ public class HttpHelper {
 			throw new HttpClientException(httpStatus, msg);
 		}
 		if (method == HttpMethod.DELETE) {
+			conn.disconnect();
 			return new byte[0];
 		}
 
@@ -234,12 +284,6 @@ public class HttpHelper {
 
 		conn.connect();
 	}
-
-	/**
-	 * The default buffer size to use for {@link #copyLarge(InputStream, OutputStream)} and
-	 * {@link #copyLarge(Reader, Writer)}
-	 */
-	public static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
 
 	public static long copy(InputStream input, OutputStream output) throws IOException {
 		byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];

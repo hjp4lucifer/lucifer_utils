@@ -193,6 +193,7 @@ public class HttpHelper {
 		if (httpStatus != HttpStatus.SC_OK) {
 			String msg = String.format("【%s】get data from url=%s fail, http status=%d", method.toString(), url,
 					httpStatus);
+			System.out.println(new String( getResponse(conn)));
 			throw new HttpClientException(httpStatus, msg);
 		}
 		if (method == HttpMethod.DELETE) {

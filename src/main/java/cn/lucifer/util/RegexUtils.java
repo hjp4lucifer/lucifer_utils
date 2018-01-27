@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class RegexUtils {
 
 	/**
-	 * 获取匹配的子项<br>
+	 * 获取匹配的子项(就是小括号里面的结果)
 	 * 
 	 * <pre>
 	 * 举例：

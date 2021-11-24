@@ -2,6 +2,8 @@ package cn.lucifer.util;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
@@ -18,9 +20,8 @@ import org.apache.commons.httpclient.params.HttpMethodParams;
 
 /**
  * http client的帮助类
- * 
+ *
  * @author Lucifer
- * 
  */
 public class HttpClientHelper {
 
@@ -34,12 +35,32 @@ public class HttpClientHelper {
 
 	/**
 	 * get请求
-	 * 
+	 *
 	 * @param url
 	 * @param parametersBody
 	 * @return
 	 */
 	public static byte[] httpGet(String url, NameValuePair[] parametersBody) {
+		return httpGet(url, parametersBody, null);
+	}
+
+	/**
+	 * get请求
+	 *
+	 * @param url
+	 * @param parametersBody
+	 * @return
+	 */
+	public static byte[] httpGet(String url, NameValuePair[] parametersBody, Map<String, String> header) {
+		if (null == header) {
+			header = new HashMap<>();
+		}
+		// init header value
+		initHeader(header, "User-Agent",
+				"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36");
+		initHeader(header, "Connection", "Keep-Alive");
+		initHeader(header, "Accept-Language", "zh-cn");
+
 		byte[] responseData = null;
 		if (parametersBody != null && parametersBody.length != 0) {
 			StringBuffer urlBuffer = new StringBuffer(url);
@@ -62,15 +83,15 @@ public class HttpClientHelper {
 
 		httpGet.getParams().setParameter("http.socket.timeout",
 				new Integer(CONNECTION_TIMEOUT));
-		httpGet.setRequestHeader("User-Agent",
-				"	Mozilla/5.0 (Windows NT 5.1; rv:14.0) Gecko/20100101 Firefox/14.0.1");
-		httpGet.setRequestHeader("Connection", "Keep-Alive");
-		httpGet.setRequestHeader("Accept-Language", "zh-cn");
+
+		for (Map.Entry<String, String> entry : header.entrySet()) {
+			httpGet.setRequestHeader(entry.getKey(), entry.getValue());
+		}
 
 		try {
 			int statusCode = httpClient.executeMethod(httpGet);
 			if (statusCode != HttpStatus.SC_OK) {
-				System.out.println("HttpGet Method failed: "
+				System.out.println("HttpGet Method failed! url=" + url + ", statusCode=" + statusCode + ", statusLine="
 						+ httpGet.getStatusLine());
 			}
 			// Read the response body.
@@ -95,9 +116,16 @@ public class HttpClientHelper {
 		return responseData;
 	}
 
+	private static void initHeader(Map<String, String> header, String key, String defaultValue) {
+		if (header.containsKey(key)) {
+			return;
+		}
+		header.put(key, defaultValue);
+	}
+
 	/**
 	 * post请求
-	 * 
+	 *
 	 * @param url
 	 * @param parametersBody
 	 * @return
@@ -139,14 +167,14 @@ public class HttpClientHelper {
 
 	/**
 	 * 带文件上传的post请求
-	 * 
+	 *
 	 * @param url
 	 * @param parametersBody
 	 * @param filePart
 	 * @return
 	 */
 	public static String httpPostWithFile(String url,
-			NameValuePair[] parametersBody, FilePart filePart) {
+										  NameValuePair[] parametersBody, FilePart filePart) {
 		if (filePart == null) {
 			return httpPost(url, parametersBody);
 		}

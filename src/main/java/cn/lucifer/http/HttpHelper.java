@@ -154,6 +154,7 @@ public class HttpHelper {
 	public static byte[] http(String url, HttpMethod method, Map<String, String> httpHeads, InputStream input,
 			int connectTimeout, Map<String, List<String>> responseHeads, OutputStream outputStream, int readTimeout)
 			throws IOException, HttpClientException {
+
 		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 		if (method != HttpMethod.DELETE) {
 			conn.setDoInput(true);

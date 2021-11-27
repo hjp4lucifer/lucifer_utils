@@ -40,7 +40,7 @@ public class HttpClientHelper {
 	 * @param parametersBody
 	 * @return
 	 */
-	public static byte[] httpGet(String url, NameValuePair[] parametersBody) {
+	public static byte[] httpGet(String url, NameValuePair[] parametersBody) throws IOException {
 		return httpGet(url, parametersBody, null);
 	}
 
@@ -51,7 +51,7 @@ public class HttpClientHelper {
 	 * @param parametersBody
 	 * @return
 	 */
-	public static byte[] httpGet(String url, NameValuePair[] parametersBody, Map<String, String> header) {
+	public static byte[] httpGet(String url, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
 		if (null == header) {
 			header = new HashMap<>();
 		}
@@ -93,6 +93,9 @@ public class HttpClientHelper {
 			if (statusCode != HttpStatus.SC_OK) {
 				System.out.println("HttpGet Method failed! url=" + url + ", statusCode=" + statusCode + ", statusLine="
 						+ httpGet.getStatusLine());
+				HttpException ex = new HttpException();
+				ex.setReasonCode(statusCode);
+				throw ex;
 			}
 			// Read the response body.
 			responseData = httpGet.getResponseBody();
@@ -105,14 +108,14 @@ public class HttpClientHelper {
 				e.printStackTrace();
 			}
 		} catch (HttpException e) {
-			e.printStackTrace();
+			throw e;
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw e;
 		} finally {
+			reTryCount = 0;
 			httpGet.releaseConnection();
 			httpClient = null;
 		}
-		reTryCount = 0;
 		return responseData;
 	}
 

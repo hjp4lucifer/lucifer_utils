@@ -100,6 +100,7 @@ public class HttpClientHelper {
 			// Read the response body.
 			responseData = httpGet.getResponseBody();
 		} catch (SocketTimeoutException e) {
+			System.out.println("[SocketTimeoutException] HttpGet Method failed! url=" +  url);
 			reTryCount++;
 			if (reTryCount < 5) {
 				System.out.println("retry count is : " + reTryCount);
@@ -108,8 +109,10 @@ public class HttpClientHelper {
 				e.printStackTrace();
 			}
 		} catch (HttpException e) {
+			System.out.println("[HttpException] HttpGet Method failed! url=" +  url);
 			throw e;
 		} catch (IOException e) {
+			System.out.println("[IOException] HttpGet Method failed! url=" +  url);
 			throw e;
 		} finally {
 			reTryCount = 0;

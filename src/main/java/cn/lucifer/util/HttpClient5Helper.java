@@ -11,6 +11,7 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
+import org.apache.hc.core5.util.TimeValue;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -59,7 +60,13 @@ public final class HttpClient5Helper {
 				.setConnectTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
 				.setResponseTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
 				.build();
-		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build();
+		CloseableHttpClient httpClient = HttpClients.custom()
+				.setDefaultRequestConfig(config)
+				// 删除空闲连接时间
+				.evictIdleConnections(TimeValue.of(40, TimeUnit.SECONDS))
+				// 关闭自动重试
+				.disableAutomaticRetries()
+				.build();
 		ClassicHttpRequest httpGet = ClassicRequestBuilder.get(url).build();
 
 		for (Map.Entry<String, String> entry : header.entrySet()) {
@@ -87,7 +94,6 @@ public final class HttpClient5Helper {
 				throw e;
 			}
 		}
-
 		return null;
 	}
 

@@ -1,5 +1,8 @@
 package cn.lucifer.util;
 
+import org.slf4j.helpers.FormattingTuple;
+import org.slf4j.helpers.MessageFormatter;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -157,5 +160,10 @@ public class StrUtils {
 			}
 		}
 		return list;
+	}
+
+	public static String generateMessage(String messagePattern, Object... argArray) {
+		FormattingTuple tuple = MessageFormatter.arrayFormat(messagePattern, argArray);
+		return tuple.getMessage();
 	}
 }

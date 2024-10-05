@@ -1,6 +1,5 @@
 package cn.lucifer.util;
 
-import org.slf4j.helpers.FormattingTuple;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.io.UnsupportedEncodingException;
@@ -162,8 +161,11 @@ public class StrUtils {
 		return list;
 	}
 
+	public static String generateStr(String messagePattern, Object... argArray) {
+		return MessageFormatter.arrayFormat(messagePattern, argArray);
+	}
+
 	public static String generateMessage(String messagePattern, Object... argArray) {
-		FormattingTuple tuple = MessageFormatter.arrayFormat(messagePattern, argArray);
-		return tuple.getMessage();
+		return MessageFormatter.arrayFormat(messagePattern, argArray);
 	}
 }

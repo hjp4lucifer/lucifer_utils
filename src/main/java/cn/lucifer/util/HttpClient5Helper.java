@@ -27,6 +27,8 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.TimeValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -46,9 +48,11 @@ import java.util.concurrent.TimeUnit;
 
 public final class HttpClient5Helper {
 
+	private final static Logger logger = LoggerFactory.getLogger(HttpClient5Helper.class);
+
 	public static final String cookie = "cookie";
 
-	private static final int CONNECTION_TIMEOUT = 60000;
+	private static final int CONNECTION_TIMEOUT = 30000;
 	private static final String content_type = "Content-Type";
 	private static final String application_x_www_form_urlencoded = "application/x-www-form-urlencoded";
 	private static final String http_socket_timeout = "http.socket.timeout";
@@ -71,6 +75,10 @@ public final class HttpClient5Helper {
 	};
 
 	public static byte[] httpGet(final String oriUrl, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
+		return httpGet(oriUrl, parametersBody, header, null);
+	}
+
+	public static byte[] httpGet(final String oriUrl, NameValuePair[] parametersBody, Map<String, String> header, BasicCookieStore cookieStore) throws IOException {
 		final String url;
 		if (parametersBody != null && parametersBody.length != 0) {
 			StrBuilder urlBuilder = new StrBuilder(oriUrl);
@@ -89,10 +97,10 @@ public final class HttpClient5Helper {
 
 		ClassicHttpRequest httpGet = ClassicRequestBuilder.get(url).build();
 
-		return execute(header, url, httpGet);
+		return execute(header, url, httpGet, cookieStore);
 	}
 
-	private static byte[] execute(Map<String, String> header, String url, ClassicHttpRequest httpReq)
+	private static byte[] execute(Map<String, String> header, String url, ClassicHttpRequest httpReq, BasicCookieStore cookieStore)
 			throws IOException {
 		if (null == header) {
 			header = new HashMap<>();
@@ -125,7 +133,9 @@ public final class HttpClient5Helper {
 			e.printStackTrace();
 		}
 
-		BasicCookieStore cookieStore = new BasicCookieStore();
+		if (null == cookieStore) {
+			cookieStore = new BasicCookieStore();
+		}
 		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
 				.setConnectionManager(connManager)
 				// 设置cookie
@@ -144,20 +154,20 @@ public final class HttpClient5Helper {
 				return httpClient.execute(httpReq, response -> {
 					int statusCode = response.getCode();
 					if (statusCode != HttpStatus.SC_OK) {
-						System.out.printf("【%s】 Method failed! url=%s, statusCode=%s, statusLine=%s%n",
-								httpReq.getMethod(), url, statusCode, response.getReasonPhrase());
+						logger.error("【{}】 Method failed! url={}, statusCode={}, statusLine={}{}",
+								new Object[]{httpReq.getMethod(), url, statusCode, response.getReasonPhrase()});
 						throw new HttpClientException(statusCode, "statusCode=" + statusCode);
 					}
 					return EntityUtils.toByteArray(response.getEntity());
 				});
 			} catch (SocketTimeoutException e) {
-				System.out.printf("[SocketTimeoutException] 【%s】 Method failed! url=%s, retryCount=%d%n",
-						httpReq.getMethod(), url, retryCount);
+				logger.error("[SocketTimeoutException] 【{}】 Method failed! url=%s, retryCount={}{}",
+						new Object[]{httpReq.getMethod(), url, retryCount});
 			} catch (HttpClientException e) {
-				System.out.printf("[HttpClientException] 【%s】 Method failed! url=%s", httpReq.getMethod(), url);
+				logger.error("[HttpClientException] 【{}】 Method failed! url={}", new Object[]{httpReq.getMethod(), url});
 				throw e;
 			} catch (IOException e) {
-				System.out.printf("[IOException] 【%s】 Method failed! url=%s", httpReq.getMethod(), url);
+				logger.error("[IOException] 【{}】 Method failed! url={}", new Object[]{httpReq.getMethod(), url});
 				throw e;
 			}
 		}
@@ -174,7 +184,7 @@ public final class HttpClient5Helper {
 			httpPost.setEntity(new UrlEncodedFormEntity(nvpList));
 		}
 
-		return execute(header, url, httpPost);
+		return execute(header, url, httpPost, null);
 	}
 
 	public static byte[] httpPost(final String url, InputStream body, Map<String, String> header)
@@ -184,7 +194,7 @@ public final class HttpClient5Helper {
 			httpPost.setEntity(new InputStreamEntity(body, null));
 		}
 
-		return execute(header, url, httpPost);
+		return execute(header, url, httpPost, null);
 	}
 
 	private static void initHeader(Map<String, String> header, String key, String defaultValue) {

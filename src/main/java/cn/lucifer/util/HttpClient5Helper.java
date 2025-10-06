@@ -6,9 +6,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.cookie.BasicClientCookie;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
@@ -26,12 +29,15 @@ import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.TimeValue;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +46,8 @@ import java.util.concurrent.TimeUnit;
 
 public final class HttpClient5Helper {
 
+	public static final String cookie = "cookie";
+
 	private static final int CONNECTION_TIMEOUT = 60000;
 	private static final String content_type = "Content-Type";
 	private static final String application_x_www_form_urlencoded = "application/x-www-form-urlencoded";
@@ -47,6 +55,20 @@ public final class HttpClient5Helper {
 	private static final String encoding_utf8 = "UTF-8";
 
 	public static int reTryCount = 0;
+
+	static final TrustManager[] trustAllCerts = new TrustManager[]{
+			new X509TrustManager() {
+				public X509Certificate[] getAcceptedIssuers() {
+					return null;
+				}
+
+				public void checkClientTrusted(X509Certificate[] certs, String authType) {
+				}
+
+				public void checkServerTrusted(X509Certificate[] certs, String authType) {
+				}
+			}
+	};
 
 	public static byte[] httpGet(final String oriUrl, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
 		final String url;
@@ -87,8 +109,15 @@ public final class HttpClient5Helper {
 				.setResponseTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).build();
 
 		HttpClientConnectionManager connManager = null;
+		boolean test = true;
 		try {
-			SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
+			SSLContext sslContext;
+			if (test) {
+				sslContext = SSLContext.getInstance("TLS");
+				sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+			} else {
+				sslContext = SSLContexts.custom().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
+			}
 			SSLConnectionSocketFactory sslFactory = new SSLConnectionSocketFactory(sslContext,
 					NoopHostnameVerifier.INSTANCE);
 			connManager = PoolingHttpClientConnectionManagerBuilder.create().setSSLSocketFactory(sslFactory).build();
@@ -96,8 +125,11 @@ public final class HttpClient5Helper {
 			e.printStackTrace();
 		}
 
+		BasicCookieStore cookieStore = new BasicCookieStore();
 		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
 				.setConnectionManager(connManager)
+				// 设置cookie
+				.setDefaultCookieStore(cookieStore)
 				// 删除空闲连接时间
 				.evictIdleConnections(TimeValue.of(40, TimeUnit.SECONDS))
 				// 关闭自动重试
@@ -132,7 +164,7 @@ public final class HttpClient5Helper {
 		return null;
 	}
 
-	public static  byte[] httpPost(final String url, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
+	public static byte[] httpPost(final String url, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
 		ClassicHttpRequest httpPost = ClassicRequestBuilder.post(url).build();
 		if (null != parametersBody && parametersBody.length > 0) {
 			List<org.apache.hc.core5.http.NameValuePair> nvpList = new ArrayList<>();

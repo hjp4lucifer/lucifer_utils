@@ -35,6 +35,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -117,7 +118,7 @@ public final class HttpClient5Helper {
 				.setResponseTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).build();
 
 		HttpClientConnectionManager connManager = null;
-		boolean test = true;
+		boolean test = false;
 		try {
 			SSLContext sslContext;
 			if (test) {

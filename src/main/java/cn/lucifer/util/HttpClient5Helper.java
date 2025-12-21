@@ -118,7 +118,7 @@ public final class HttpClient5Helper {
 				.setResponseTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS).build();
 
 		HttpClientConnectionManager connManager = null;
-		boolean test = false;
+		boolean test = false ;
 		try {
 			SSLContext sslContext;
 			if (test) {
@@ -161,8 +161,12 @@ public final class HttpClient5Helper {
 					}
 					return EntityUtils.toByteArray(response.getEntity());
 				});
+			} catch (SocketException e) {
+				logger.error("[SocketException] 【{}】 Method failed! url={}, retryCount={}",
+						new Object[]{httpReq.getMethod(), url, retryCount});
+				throw new HttpClientException("SocketException", e);
 			} catch (SocketTimeoutException e) {
-				logger.error("[SocketTimeoutException] 【{}】 Method failed! url=%s, retryCount={}{}",
+				logger.error("[SocketTimeoutException] 【{}】 Method failed! url={}, retryCount={}",
 						new Object[]{httpReq.getMethod(), url, retryCount});
 			} catch (HttpClientException e) {
 				logger.error("[HttpClientException] 【{}】 Method failed! url={}", new Object[]{httpReq.getMethod(), url});

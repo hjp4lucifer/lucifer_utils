@@ -179,7 +179,7 @@ public final class HttpClient5Helper {
 		return null;
 	}
 
-	public static byte[] httpPost(final String url, NameValuePair[] parametersBody, Map<String, String> header) throws IOException {
+	public static byte[] httpPost(final String url, NameValuePair[] parametersBody, Map<String, String> header, BasicCookieStore cookieStore) throws IOException {
 		ClassicHttpRequest httpPost = ClassicRequestBuilder.post(url).build();
 		if (null != parametersBody && parametersBody.length > 0) {
 			List<org.apache.hc.core5.http.NameValuePair> nvpList = new ArrayList<>();
@@ -189,7 +189,7 @@ public final class HttpClient5Helper {
 			httpPost.setEntity(new UrlEncodedFormEntity(nvpList));
 		}
 
-		return execute(header, url, httpPost, null);
+		return execute(header, url, httpPost, cookieStore);
 	}
 
 	public static byte[] httpPost(final String url, InputStream body, Map<String, String> header)

@@ -10,16 +10,20 @@ import org.apache.hc.client5.http.cookie.BasicCookieStore;
 import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.cookie.BasicClientCookie;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.TrustSelfSignedStrategy;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.InputStreamEntity;
@@ -58,6 +62,8 @@ public final class HttpClient5Helper {
 	private static final String application_x_www_form_urlencoded = "application/x-www-form-urlencoded";
 	private static final String http_socket_timeout = "http.socket.timeout";
 	private static final String encoding_utf8 = "UTF-8";
+
+	private static final HttpHost proxy = new HttpHost("127.0.0.1", 8888);
 
 	public static int reTryCount = 0;
 
@@ -107,10 +113,10 @@ public final class HttpClient5Helper {
 			header = new HashMap<>();
 		}
 		// init header value
-		initHeader(header, "User-Agent",
-				"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36");
+		initHeader(header, "user-agent",
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36");
 		initHeader(header, "Connection", "Keep-Alive");
-		initHeader(header, "Accept-Language", "zh-cn");
+		initHeader(header, "accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
 
 		RequestConfig config = RequestConfig.custom()
 				.setConnectionRequestTimeout(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
@@ -137,14 +143,25 @@ public final class HttpClient5Helper {
 		if (null == cookieStore) {
 			cookieStore = new BasicCookieStore();
 		}
-		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
+
+		// 配置代理
+		HttpClientBuilder httpClientBuilder = HttpClients.custom()
+				.setDefaultRequestConfig(config)
 				.setConnectionManager(connManager)
 				// 设置cookie
 				.setDefaultCookieStore(cookieStore)
 				// 删除空闲连接时间
 				.evictIdleConnections(TimeValue.of(40, TimeUnit.SECONDS))
 				// 关闭自动重试
-				.disableAutomaticRetries().build();
+				.disableAutomaticRetries();
+
+		if (test && proxy != null) {
+			HttpRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+			httpClientBuilder.setRoutePlanner(routePlanner);
+			logger.info("使用代理: {}:{}", proxy.getHostName(), proxy.getPort());
+		}
+
+		CloseableHttpClient httpClient = httpClientBuilder.build();
 
 		for (Map.Entry<String, String> entry : header.entrySet()) {
 			httpReq.addHeader(entry.getKey(), entry.getValue());
@@ -154,8 +171,13 @@ public final class HttpClient5Helper {
 			try {
 				return httpClient.execute(httpReq, response -> {
 					int statusCode = response.getCode();
-					if (statusCode != HttpStatus.SC_OK) {
-						logger.error("【{}】 Method failed! url={}, statusCode={}, statusLine={}{}",
+					if (statusCode == HttpStatus.SC_FORBIDDEN) {
+						logger.error("【{}】 Method failed! url={}, statusCode={}, statusLine={}, html={}",
+								new Object[]{httpReq.getMethod(), url, statusCode, response.getReasonPhrase(),
+										new String(EntityUtils.toByteArray(response.getEntity()))});
+						throw new HttpClientException(statusCode, "statusCode=" + statusCode);
+					} else if (statusCode != HttpStatus.SC_OK) {
+						logger.error("【{}】 Method failed! url={}, statusCode={}, statusLine={}",
 								new Object[]{httpReq.getMethod(), url, statusCode, response.getReasonPhrase()});
 						throw new HttpClientException(statusCode, "statusCode=" + statusCode);
 					}

@@ -14,7 +14,7 @@ public class CookiesUtils {
 		for (String c : cookieList) {
 			String[] pair = StringUtils.split(c.trim(), "=");
 			BasicClientCookie cookie = new BasicClientCookie(pair[0], pair[1]);
-			cookie.setDomain("javbot3.top");
+			cookie.setDomain(domain);
 			cookieStore.addCookie(cookie);
 		}
 		return cookieStore;

@@ -113,8 +113,12 @@ public final class HttpClient5Helper {
 			header = new HashMap<>();
 		}
 		// init header value
+		// UA 与 sec-ch-ua 的主版本号必须保持一致，否则有指纹风控的站点会判定为异常
 		initHeader(header, "user-agent",
-				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36");
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36");
+		initHeader(header, "sec-ch-ua", "\"Google Chrome\";v=\"155\", \"Chromium\";v=\"155\", \"Not(A:Brand\";v=\"24\"");
+		initHeader(header, "sec-ch-ua-mobile", "?0");
+		initHeader(header, "sec-ch-ua-platform", "\"Windows\"");
 		initHeader(header, "Connection", "Keep-Alive");
 		initHeader(header, "accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
 
